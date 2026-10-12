@@ -28,24 +28,30 @@ export function DashboardNav() {
 
         {/* Center: Internal Dashboard Links */}
         <nav className="hidden md:flex items-center gap-6" aria-label="Dashboard Navigation">
-          <a
-            href="#overview"
+          <Link
+            href="/dashboard"
             className="text-xs font-bold uppercase tracking-[0.06em] text-[#101010] hover:text-[#0038FF] transition-colors py-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#0038FF]"
           >
-            Overview
-          </a>
+            Workspace
+          </Link>
           <a
-            href="#scanner"
+            href="/dashboard#scanner"
             className="text-xs font-bold uppercase tracking-[0.06em] text-[#101010] hover:text-[#0038FF] transition-colors py-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#0038FF]"
           >
-            URL Scanner
+            Scanner
           </a>
-          <a
-            href="#history"
+          <Link
+            href="/reports"
             className="text-xs font-bold uppercase tracking-[0.06em] text-[#101010] hover:text-[#0038FF] transition-colors py-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#0038FF]"
           >
-            Scan History
-          </a>
+            Reports
+          </Link>
+          <Link
+            href="/admin"
+            className="text-xs font-bold uppercase tracking-[0.06em] text-[#101010] hover:text-[#0038FF] transition-colors py-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#0038FF]"
+          >
+            Admin
+          </Link>
         </nav>
 
         {/* Right: User Demarcation & Navigation */}
@@ -87,27 +93,34 @@ export function DashboardNav() {
             <span>Active Session: Analyst Demo</span>
           </div>
           <nav className="flex flex-col gap-2 pt-1" aria-label="Mobile Navigation">
-            <a
-              href="#overview"
+            <Link
+              href="/dashboard"
               onClick={() => setMobileNavOpen(false)}
               className="text-xs font-bold uppercase tracking-[0.06em] text-[#101010] py-2 border-b border-[#F4F4F4]"
             >
-              Overview
-            </a>
+              Workspace
+            </Link>
             <a
-              href="#scanner"
+              href="/dashboard#scanner"
               onClick={() => setMobileNavOpen(false)}
               className="text-xs font-bold uppercase tracking-[0.06em] text-[#101010] py-2 border-b border-[#F4F4F4]"
             >
-              URL Scanner
+              Scanner
             </a>
-            <a
-              href="#history"
+            <Link
+              href="/reports"
               onClick={() => setMobileNavOpen(false)}
               className="text-xs font-bold uppercase tracking-[0.06em] text-[#101010] py-2 border-b border-[#F4F4F4]"
             >
-              Scan History
-            </a>
+              Reports
+            </Link>
+            <Link
+              href="/admin"
+              onClick={() => setMobileNavOpen(false)}
+              className="text-xs font-bold uppercase tracking-[0.06em] text-[#101010] py-2 border-b border-[#F4F4F4]"
+            >
+              Admin Dashboard
+            </Link>
             <div className="flex items-center justify-between pt-3">
               <Link
                 href="/"

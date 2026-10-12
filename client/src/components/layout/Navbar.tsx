@@ -33,10 +33,28 @@ export function Navbar() {
                 {link.label}
               </a>
             ))}
+            <Link
+              href="/reports"
+              className="text-xs font-bold uppercase tracking-[0.06em] text-[#101010] hover:text-[#0038FF] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0038FF] rounded-[2px]"
+            >
+              Reports
+            </Link>
+            <Link
+              href="/admin"
+              className="text-xs font-bold uppercase tracking-[0.06em] text-[#101010] hover:text-[#0038FF] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0038FF] rounded-[2px]"
+            >
+              Admin
+            </Link>
           </nav>
 
           {/* Utility CTAs */}
           <div className="hidden md:flex items-center gap-4">
+            <Link
+              href="/dashboard"
+              className="text-xs font-bold uppercase tracking-[0.06em] text-[#0038FF] hover:underline transition-colors duration-150 px-2 py-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0038FF] rounded-[2px]"
+            >
+              Workspace
+            </Link>
             <Link
               href="/login"
               className="text-xs font-bold uppercase tracking-[0.06em] text-[#101010] hover:text-[#0038FF] transition-colors duration-150 px-2 py-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0038FF] rounded-[2px]"
@@ -78,6 +96,27 @@ export function Navbar() {
                   {link.label}
                 </a>
               ))}
+              <Link
+                href="/dashboard"
+                onClick={() => setMobileMenuOpen(false)}
+                className="text-sm font-bold uppercase tracking-[0.06em] text-[#0038FF] hover:underline py-2 border-b border-[#F4F4F4]"
+              >
+                Analyst Workspace
+              </Link>
+              <Link
+                href="/reports"
+                onClick={() => setMobileMenuOpen(false)}
+                className="text-sm font-bold uppercase tracking-[0.06em] text-[#101010] hover:text-[#0038FF] py-2 border-b border-[#F4F4F4]"
+              >
+                Threat Reports Archive
+              </Link>
+              <Link
+                href="/admin"
+                onClick={() => setMobileMenuOpen(false)}
+                className="text-sm font-bold uppercase tracking-[0.06em] text-[#101010] hover:text-[#0038FF] py-2 border-b border-[#F4F4F4]"
+              >
+                Admin Operations
+              </Link>
               <div className="flex flex-col gap-3 pt-4">
                 <Link
                   href="/login"

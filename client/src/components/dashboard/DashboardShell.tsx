@@ -5,11 +5,14 @@ import { DashboardNav } from "@/components/dashboard/DashboardNav";
 import { OverviewStats } from "@/components/dashboard/OverviewStats";
 import { DashboardScanner } from "@/components/dashboard/DashboardScanner";
 import { ScanHistory } from "@/components/dashboard/ScanHistory";
-import { INITIAL_MOCK_HISTORY, HistoryItem } from "@/lib/mock-history";
+import { ReportDetailModal } from "@/components/reports/ReportDetailModal";
+import { useScanHistory } from "@/lib/scan-history-store";
 import { ScanResult } from "@/lib/mock-data";
+import { HistoryItem } from "@/lib/mock-history";
 
 export function DashboardShell() {
-  const [history, setHistory] = useState<HistoryItem[]>(INITIAL_MOCK_HISTORY);
+  const { history, addScan, clearHistory, restoreHistory } = useScanHistory();
+  const [selectedScan, setSelectedScan] = useState<HistoryItem | ScanResult | null>(null);
 
   // Dynamically computed overview metrics from active session history
   const totalScans = history.length;
@@ -19,20 +22,7 @@ export function DashboardShell() {
   ).length;
 
   const handleNewScan = (newResult: ScanResult) => {
-    const newHistoryItem: HistoryItem = {
-      ...newResult,
-      formattedDate: "Just now",
-    };
-    // Prepend to current in-memory history state
-    setHistory((prev) => [newHistoryItem, ...prev]);
-  };
-
-  const handleClearHistory = () => {
-    setHistory([]);
-  };
-
-  const handleRestoreHistory = () => {
-    setHistory(INITIAL_MOCK_HISTORY);
+    addScan(newResult);
   };
 
   return (
@@ -51,7 +41,7 @@ export function DashboardShell() {
             Threat Analysis Workspace
           </h1>
           <p className="text-sm text-[#101010]/75 max-w-2xl leading-relaxed">
-            Execute real-time destination scans, analyze suspicious URL parameters, review heuristic indicators, and audit previous session findings.
+            Execute real-time destination scans, analyze suspicious email communications &amp; message syntax, review detected threat indicators, and audit previous forensic findings.
           </p>
         </div>
 
@@ -62,16 +52,28 @@ export function DashboardShell() {
           suspiciousScans={suspiciousScans}
         />
 
-        {/* 2. Interactive Dashboard URL Scanner */}
-        <DashboardScanner onScanComplete={handleNewScan} />
+        {/* 2. Interactive Multi-Vector Threat Scanner */}
+        <DashboardScanner
+          onScanComplete={handleNewScan}
+          onInspectScan={(scan) => setSelectedScan(scan)}
+        />
 
-        {/* 3. Session Scan History */}
+        {/* 3. Session Scan History with Search, Filter & Inspect */}
         <ScanHistory
           history={history}
-          onClearHistory={handleClearHistory}
-          onRestoreHistory={handleRestoreHistory}
+          onClearHistory={clearHistory}
+          onRestoreHistory={restoreHistory}
+          onSelectScan={(item) => setSelectedScan(item)}
         />
       </main>
+
+      {/* Inspection Modal */}
+      {selectedScan && (
+        <ReportDetailModal
+          item={selectedScan}
+          onClose={() => setSelectedScan(null)}
+        />
+      )}
 
       {/* Product Footer */}
       <footer className="w-full bg-[#FFFFFF] border-t border-[#E5E7EB] py-6 px-6">

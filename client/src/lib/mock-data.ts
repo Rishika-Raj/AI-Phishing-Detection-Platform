@@ -11,11 +11,15 @@ export interface ScanResult {
   timestamp: string;
   target: string;
   targetType: "url" | "email" | "message";
+  subject?: string;
+  sender?: string;
+  fullContent?: string;
   riskScore: number;
   threatLevel: ThreatLevel;
   summary: string;
   recommendation: string;
   indicators: IndicatorResult[];
+  detectedKeywords: string[];
   isDemonstration: boolean;
 }
 
@@ -23,6 +27,7 @@ export interface SampleItem {
   id: string;
   label: string;
   type: "url" | "email" | "message";
+  subject?: string;
   content: string;
   expectedRisk: ThreatLevel;
 }
@@ -56,6 +61,7 @@ export const SAMPLE_INPUTS: SampleItem[] = [
     id: "email-critical",
     label: "Account Suspension Notice (High Risk)",
     type: "email",
+    subject: "URGENT: Your account has been temporarily suspended",
     content: `FROM: security-alert@account-verification-support.net
 SUBJECT: URGENT: Your account has been temporarily suspended
 BODY:
@@ -70,6 +76,7 @@ Failure to do so will result in permanent account termination.`,
     id: "email-suspicious",
     label: "Unsolicited Wire Request (Suspicious)",
     type: "email",
+    subject: "Outstanding invoice #INV-4920 payment overdue",
     content: `FROM: admin-billing@quick-invoicing-center.org
 SUBJECT: Outstanding invoice #INV-4920 payment overdue
 BODY:
@@ -80,6 +87,7 @@ Please review the attached invoice summary immediately. Outstanding balance of $
     id: "email-safe",
     label: "Standard Newsletter (Safe)",
     type: "email",
+    subject: "Weekly Security Digest: Best Practices in Modern Authentication",
     content: `FROM: updates@securityweek.com
 SUBJECT: Weekly Security Digest: Best Practices in Modern Authentication
 BODY:

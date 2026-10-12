@@ -14,9 +14,12 @@ import {
 interface ScanResultCardProps {
   result: ScanResult;
   onReset: () => void;
+  onInspect?: () => void;
 }
 
-export function ScanResultCard({ result, onReset }: ScanResultCardProps) {
+export function ScanResultCard({ result, onReset, onInspect }: ScanResultCardProps) {
+  const [showFullSpecimen, setShowFullSpecimen] = React.useState(false);
+
   const badgeVariantMap: Record<ThreatLevel, "safe" | "suspicious" | "critical"> = {
     SAFE: "safe",
     SUSPICIOUS: "suspicious",
@@ -47,6 +50,8 @@ export function ScanResultCard({ result, onReset }: ScanResultCardProps) {
     },
   };
 
+  const keywords = result.detectedKeywords || [];
+
   return (
     <div
       role="region"
@@ -62,24 +67,59 @@ export function ScanResultCard({ result, onReset }: ScanResultCardProps) {
           <span className="font-mono text-[11px] text-[#101010]/50">
             ID: {result.id}
           </span>
+          <Badge variant="neutral" size="sm" className="uppercase font-mono text-[10px]">
+            {result.targetType}
+          </Badge>
         </div>
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          onClick={onReset}
-          icon={<RefreshCwIcon className="w-3.5 h-3.5" />}
-        >
-          New Scan
-        </Button>
+        <div className="flex items-center gap-2">
+          {onInspect && (
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={onInspect}
+            >
+              Full Inspection →
+            </Button>
+          )}
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={onReset}
+            icon={<RefreshCwIcon className="w-3.5 h-3.5" />}
+          >
+            New Scan
+          </Button>
+        </div>
       </div>
 
       {/* Target Specimen Display */}
-      <div className="my-4 p-3 bg-[#F4F4F4] border border-[#E5E7EB] rounded-[4px] font-mono text-xs text-[#101010] break-all">
-        <span className="text-[#101010]/60 mr-2 uppercase font-semibold text-[10px]">
-          Target:
-        </span>
-        <span>{result.target}</span>
+      <div className="my-4 p-3 bg-[#F4F4F4] border border-[#E5E7EB] rounded-[4px] font-mono text-xs text-[#101010]">
+        <div className="flex items-start justify-between gap-2">
+          <div className="break-all">
+            <span className="text-[#101010]/60 mr-2 uppercase font-semibold text-[10px]">
+              {result.targetType === "email" ? "Target / Subject:" : "Target:"}
+            </span>
+            <span className="font-semibold">{result.target}</span>
+          </div>
+          {result.fullContent && (
+            <button
+              type="button"
+              onClick={() => setShowFullSpecimen(!showFullSpecimen)}
+              className="shrink-0 text-[11px] text-[#0038FF] hover:underline font-mono"
+            >
+              {showFullSpecimen ? "Collapse" : "View Raw Specimen"}
+            </button>
+          )}
+        </div>
+
+        {/* Expandable Raw Specimen Content */}
+        {showFullSpecimen && result.fullContent && (
+          <div className="mt-3 pt-3 border-t border-[#E5E7EB] font-mono text-[11px] text-[#101010]/80 whitespace-pre-wrap leading-relaxed max-h-60 overflow-y-auto bg-[#FFFFFF] p-3 rounded-[3px] border border-[#E5E7EB]">
+            {result.fullContent}
+          </div>
+        )}
       </div>
 
       {/* Primary Score & Classification */}
@@ -116,9 +156,42 @@ export function ScanResultCard({ result, onReset }: ScanResultCardProps) {
             Analysis Method
           </span>
           <span className="font-mono text-xs text-[#101010]">
-            Rule-Based Heuristic Evaluation
+            Demo Heuristic Evaluation
           </span>
         </div>
+      </div>
+
+      {/* Detected Keywords Section */}
+      <div className="mb-6 p-4 border border-[#E5E7EB] rounded-[4px] bg-[#FAFAFA]">
+        <div className="flex items-center justify-between mb-2">
+          <span className="font-mono text-[10px] uppercase tracking-wider text-[#101010] font-bold">
+            Detected Suspicious Keywords &amp; Threat Tokens ({keywords.length})
+          </span>
+          <span className="font-mono text-[10px] text-[#101010]/50">
+            Lexical Match Heuristics
+          </span>
+        </div>
+
+        {keywords.length > 0 ? (
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            {keywords.map((kw, idx) => (
+              <Badge
+                key={idx}
+                variant={result.threatLevel === "CRITICAL" ? "critical" : "suspicious"}
+                size="sm"
+                rounded="sm"
+                className="font-mono lowercase tracking-normal"
+              >
+                &ldquo;{kw}&rdquo;
+              </Badge>
+            ))}
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 text-xs text-[#0F766E] font-mono py-1">
+            <CheckIcon className="w-3.5 h-3.5" />
+            <span>No deceptive keywords, coercive pressure terms, or phishing tokens identified.</span>
+          </div>
+        )}
       </div>
 
       {/* Indicator Breakdown */}
@@ -169,8 +242,8 @@ export function ScanResultCard({ result, onReset }: ScanResultCardProps) {
       </div>
 
       {/* Demonstration Notice */}
-      <div className="pt-3 border-t border-[#F4F4F4] text-[11px] text-[#101010]/50 font-mono flex items-center justify-between">
-        <span>* Frontend demonstration evaluated via deterministic client-side rules.</span>
+      <div className="pt-3 border-t border-[#F4F4F4] text-[11px] text-[#101010]/50 font-mono flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <span>* Demo heuristic analysis evaluated via deterministic pattern rules (not an external AI verdict).</span>
         <span>NoBait Intelligence V1</span>
       </div>
     </div>
