@@ -1,18 +1,28 @@
 "use client";
 
-import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { ArrowRightIcon, AlertCircleIcon, ShieldIcon } from "@/components/ui/Icons";
+import { createClient } from "@/lib/supabase/client";
 
 export function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirectTo") || "/dashboard";
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  // Clear auth error when inputs change
+  useEffect(() => {
+    if (authError) setAuthError(null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [email, password]);
 
   const validate = () => {
     const newErrors: { email?: string; password?: string } = {};
@@ -33,16 +43,33 @@ export function LoginForm() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
 
     setIsSubmitting(true);
-    setNotice("Frontend Demonstration: Authentication service will connect to backend API. Entering demo workspace...");
+    setAuthError(null);
 
-    setTimeout(() => {
-      router.push("/dashboard");
-    }, 700);
+    const supabase = createClient();
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
+
+    if (error) {
+      setAuthError(
+        error.message === "Invalid login credentials"
+          ? "Incorrect email or password. Please try again."
+          : error.message
+      );
+      setIsSubmitting(false);
+      return;
+    }
+
+    // Session is set — redirect to intended destination
+    router.push(redirectTo);
+    router.refresh();
   };
 
   return (
@@ -86,9 +113,9 @@ export function LoginForm() {
               <ShieldIcon className="w-5 h-5 text-[#0038FF] shrink-0 mt-0.5" />
               <div className="text-xs text-[#101010]/75 leading-relaxed">
                 <strong className="text-[#101010] block font-semibold mb-0.5">
-                  Milestone Status
+                  Secure Authentication
                 </strong>
-                Authentication UI is ready for backend API integration. You can sign in with any valid format to explore the demo workspace.
+                Sign in with your registered account credentials. Sessions are managed securely and persist across page refreshes.
               </div>
             </div>
           </div>
@@ -105,9 +132,10 @@ export function LoginForm() {
                 </p>
               </div>
 
-              {notice && (
-                <div className="mb-6 p-3 bg-[#EEF2FF] border border-[#C7D2FE] rounded-[4px] text-xs text-[#0038FF] font-mono leading-relaxed">
-                  {notice}
+              {authError && (
+                <div className="mb-6 p-3 bg-[#FEF2F2] border border-[#FECACA] rounded-[4px] text-xs text-[#D92D20] font-mono leading-relaxed flex items-start gap-2">
+                  <AlertCircleIcon className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                  <span>{authError}</span>
                 </div>
               )}
 
@@ -184,7 +212,7 @@ export function LoginForm() {
                     disabled={isSubmitting}
                     icon={<ArrowRightIcon className="w-4 h-4" />}
                   >
-                    {isSubmitting ? "Accessing Workspace..." : "Sign In"}
+                    {isSubmitting ? "Signing In..." : "Sign In"}
                   </Button>
                 </div>
               </form>
@@ -198,16 +226,6 @@ export function LoginForm() {
                   Create Account →
                 </Link>
               </div>
-
-              {/* Demo Workspace Direct Shortcut */}
-              <div className="mt-4 pt-4 border-t border-[#F4F4F4] text-center">
-                <Link
-                  href="/dashboard"
-                  className="font-mono text-xs text-[#101010]/60 hover:text-[#0038FF] underline"
-                >
-                  Skip to Demo Workspace without signing in →
-                </Link>
-              </div>
             </div>
           </div>
         </div>
@@ -215,7 +233,7 @@ export function LoginForm() {
 
       {/* Footer Colophon */}
       <footer className="px-6 py-6 border-t border-[#E5E7EB] bg-[#F4F4F4] text-center text-xs text-[#101010]/50 font-mono">
-        NoBait Phishing Detection Platform · Frontend Demonstration Authentication
+        NoBait Phishing Detection Platform · Secured by Supabase Auth
       </footer>
     </div>
   );

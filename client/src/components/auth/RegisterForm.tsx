@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { ArrowRightIcon, AlertCircleIcon, ShieldIcon } from "@/components/ui/Icons";
+import { createClient } from "@/lib/supabase/client";
 
 export function RegisterForm() {
   const router = useRouter();
@@ -19,7 +20,13 @@ export function RegisterForm() {
     confirmPassword?: string;
   }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (authError) setAuthError(null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [email, password, fullName]);
 
   const validate = () => {
     const newErrors: {
@@ -55,16 +62,49 @@ export function RegisterForm() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
 
     setIsSubmitting(true);
-    setNotice("Frontend Demonstration: Account creation prepared for backend integration. Initializing workspace session...");
+    setAuthError(null);
 
-    setTimeout(() => {
+    const supabase = createClient();
+
+    const { error } = await supabase.auth.signUp({
+      email: email.trim(),
+      password,
+      options: {
+        data: {
+          // full_name is passed as display metadata only.
+          // The DB trigger uses this for profiles.full_name.
+          // It does NOT affect the role — role is always set to 'user' by the trigger.
+          full_name: fullName.trim(),
+        },
+      },
+    });
+
+    if (error) {
+      setAuthError(error.message);
+      setIsSubmitting(false);
+      return;
+    }
+
+    // If email confirmation is enabled in Supabase, show a confirmation message.
+    // If auto-confirm is enabled, sign in directly.
+    const { data: sessionData } = await supabase.auth.getSession();
+
+    if (sessionData.session) {
+      // Auto-confirm enabled — user is immediately signed in
       router.push("/dashboard");
-    }, 700);
+      router.refresh();
+    } else {
+      // Email confirmation required
+      setSuccess(
+        "Account created! Please check your email inbox to confirm your address, then sign in."
+      );
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -108,9 +148,9 @@ export function RegisterForm() {
               <ShieldIcon className="w-5 h-5 text-[#0038FF] shrink-0 mt-0.5" />
               <div className="text-xs text-[#101010]/75 leading-relaxed">
                 <strong className="text-[#101010] block font-semibold mb-0.5">
-                  Direct Demonstration Access
+                  Secure Registration
                 </strong>
-                Credentials are validated purely on the client side for this demonstration milestone. No passwords are transmitted or stored.
+                Your account is created with Supabase Auth. Scan history and results are stored securely and associated with your account only.
               </div>
             </div>
           </div>
@@ -127,148 +167,157 @@ export function RegisterForm() {
                 </p>
               </div>
 
-              {notice && (
-                <div className="mb-6 p-3 bg-[#EEF2FF] border border-[#C7D2FE] rounded-[4px] text-xs text-[#0038FF] font-mono leading-relaxed">
-                  {notice}
+              {success && (
+                <div className="mb-6 p-3 bg-[#F0FDF4] border border-[#BBF7D0] rounded-[4px] text-xs text-[#0F766E] font-mono leading-relaxed">
+                  {success}
                 </div>
               )}
 
-              <form onSubmit={handleSubmit} noValidate className="space-y-4">
-                <div>
-                  <label
-                    htmlFor="fullName"
-                    className="block font-mono text-xs uppercase tracking-wider text-[#101010] font-semibold mb-1.5"
-                  >
-                    Full Name
-                  </label>
-                  <input
-                    id="fullName"
-                    type="text"
-                    autoComplete="name"
-                    value={fullName}
-                    onChange={(e) => {
-                      setFullName(e.target.value);
-                      if (errors.fullName) setErrors((prev) => ({ ...prev, fullName: undefined }));
-                    }}
-                    placeholder="Alex Morgan"
-                    className={`w-full px-4 py-2.5 bg-[#FFFFFF] border ${
-                      errors.fullName ? "border-[#D92D20]" : "border-[#E5E7EB]"
-                    } rounded-[4px] text-sm text-[#101010] placeholder:text-[#101010]/40 focus:outline-none focus:border-[#0038FF] transition-colors`}
-                  />
-                  {errors.fullName && (
-                    <p className="mt-1 text-xs text-[#D92D20] flex items-center gap-1 font-mono">
-                      <AlertCircleIcon className="w-3.5 h-3.5 shrink-0" />
-                      <span>{errors.fullName}</span>
-                    </p>
-                  )}
+              {authError && (
+                <div className="mb-6 p-3 bg-[#FEF2F2] border border-[#FECACA] rounded-[4px] text-xs text-[#D92D20] font-mono leading-relaxed flex items-start gap-2">
+                  <AlertCircleIcon className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                  <span>{authError}</span>
                 </div>
+              )}
 
-                <div>
-                  <label
-                    htmlFor="email"
-                    className="block font-mono text-xs uppercase tracking-wider text-[#101010] font-semibold mb-1.5"
-                  >
-                    Email Address
-                  </label>
-                  <input
-                    id="email"
-                    type="email"
-                    autoComplete="email"
-                    value={email}
-                    onChange={(e) => {
-                      setEmail(e.target.value);
-                      if (errors.email) setErrors((prev) => ({ ...prev, email: undefined }));
-                    }}
-                    placeholder="analyst@example.com"
-                    className={`w-full px-4 py-2.5 bg-[#FFFFFF] border ${
-                      errors.email ? "border-[#D92D20]" : "border-[#E5E7EB]"
-                    } rounded-[4px] text-sm text-[#101010] placeholder:text-[#101010]/40 focus:outline-none focus:border-[#0038FF] transition-colors`}
-                  />
-                  {errors.email && (
-                    <p className="mt-1 text-xs text-[#D92D20] flex items-center gap-1 font-mono">
-                      <AlertCircleIcon className="w-3.5 h-3.5 shrink-0" />
-                      <span>{errors.email}</span>
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
+              {!success && (
+                <form onSubmit={handleSubmit} noValidate className="space-y-4">
+                  <div>
                     <label
-                      htmlFor="password"
-                      className="block font-mono text-xs uppercase tracking-wider text-[#101010] font-semibold"
+                      htmlFor="fullName"
+                      className="block font-mono text-xs uppercase tracking-wider text-[#101010] font-semibold mb-1.5"
                     >
-                      Password
+                      Full Name
                     </label>
-                    <span className="text-[11px] text-[#101010]/50 font-mono">
-                      Min 6 characters
-                    </span>
+                    <input
+                      id="fullName"
+                      type="text"
+                      autoComplete="name"
+                      value={fullName}
+                      onChange={(e) => {
+                        setFullName(e.target.value);
+                        if (errors.fullName) setErrors((prev) => ({ ...prev, fullName: undefined }));
+                      }}
+                      placeholder="Alex Morgan"
+                      className={`w-full px-4 py-2.5 bg-[#FFFFFF] border ${
+                        errors.fullName ? "border-[#D92D20]" : "border-[#E5E7EB]"
+                      } rounded-[4px] text-sm text-[#101010] placeholder:text-[#101010]/40 focus:outline-none focus:border-[#0038FF] transition-colors`}
+                    />
+                    {errors.fullName && (
+                      <p className="mt-1 text-xs text-[#D92D20] flex items-center gap-1 font-mono">
+                        <AlertCircleIcon className="w-3.5 h-3.5 shrink-0" />
+                        <span>{errors.fullName}</span>
+                      </p>
+                    )}
                   </div>
-                  <input
-                    id="password"
-                    type="password"
-                    autoComplete="new-password"
-                    value={password}
-                    onChange={(e) => {
-                      setPassword(e.target.value);
-                      if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }));
-                    }}
-                    placeholder="••••••••"
-                    className={`w-full px-4 py-2.5 bg-[#FFFFFF] border ${
-                      errors.password ? "border-[#D92D20]" : "border-[#E5E7EB]"
-                    } rounded-[4px] text-sm text-[#101010] placeholder:text-[#101010]/40 focus:outline-none focus:border-[#0038FF] transition-colors`}
-                  />
-                  {errors.password && (
-                    <p className="mt-1 text-xs text-[#D92D20] flex items-center gap-1 font-mono">
-                      <AlertCircleIcon className="w-3.5 h-3.5 shrink-0" />
-                      <span>{errors.password}</span>
-                    </p>
-                  )}
-                </div>
 
-                <div>
-                  <label
-                    htmlFor="confirmPassword"
-                    className="block font-mono text-xs uppercase tracking-wider text-[#101010] font-semibold mb-1.5"
-                  >
-                    Confirm Password
-                  </label>
-                  <input
-                    id="confirmPassword"
-                    type="password"
-                    autoComplete="new-password"
-                    value={confirmPassword}
-                    onChange={(e) => {
-                      setConfirmPassword(e.target.value);
-                      if (errors.confirmPassword)
-                        setErrors((prev) => ({ ...prev, confirmPassword: undefined }));
-                    }}
-                    placeholder="••••••••"
-                    className={`w-full px-4 py-2.5 bg-[#FFFFFF] border ${
-                      errors.confirmPassword ? "border-[#D92D20]" : "border-[#E5E7EB]"
-                    } rounded-[4px] text-sm text-[#101010] placeholder:text-[#101010]/40 focus:outline-none focus:border-[#0038FF] transition-colors`}
-                  />
-                  {errors.confirmPassword && (
-                    <p className="mt-1 text-xs text-[#D92D20] flex items-center gap-1 font-mono">
-                      <AlertCircleIcon className="w-3.5 h-3.5 shrink-0" />
-                      <span>{errors.confirmPassword}</span>
-                    </p>
-                  )}
-                </div>
+                  <div>
+                    <label
+                      htmlFor="email"
+                      className="block font-mono text-xs uppercase tracking-wider text-[#101010] font-semibold mb-1.5"
+                    >
+                      Email Address
+                    </label>
+                    <input
+                      id="email"
+                      type="email"
+                      autoComplete="email"
+                      value={email}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        if (errors.email) setErrors((prev) => ({ ...prev, email: undefined }));
+                      }}
+                      placeholder="analyst@example.com"
+                      className={`w-full px-4 py-2.5 bg-[#FFFFFF] border ${
+                        errors.email ? "border-[#D92D20]" : "border-[#E5E7EB]"
+                      } rounded-[4px] text-sm text-[#101010] placeholder:text-[#101010]/40 focus:outline-none focus:border-[#0038FF] transition-colors`}
+                    />
+                    {errors.email && (
+                      <p className="mt-1 text-xs text-[#D92D20] flex items-center gap-1 font-mono">
+                        <AlertCircleIcon className="w-3.5 h-3.5 shrink-0" />
+                        <span>{errors.email}</span>
+                      </p>
+                    )}
+                  </div>
 
-                <div className="pt-3">
-                  <Button
-                    type="submit"
-                    variant="primary"
-                    size="md"
-                    className="w-full"
-                    disabled={isSubmitting}
-                    icon={<ArrowRightIcon className="w-4 h-4" />}
-                  >
-                    {isSubmitting ? "Creating Workspace..." : "Create Account"}
-                  </Button>
-                </div>
-              </form>
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label
+                        htmlFor="password"
+                        className="block font-mono text-xs uppercase tracking-wider text-[#101010] font-semibold"
+                      >
+                        Password
+                      </label>
+                      <span className="text-[11px] text-[#101010]/50 font-mono">
+                        Min 6 characters
+                      </span>
+                    </div>
+                    <input
+                      id="password"
+                      type="password"
+                      autoComplete="new-password"
+                      value={password}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }));
+                      }}
+                      placeholder="••••••••"
+                      className={`w-full px-4 py-2.5 bg-[#FFFFFF] border ${
+                        errors.password ? "border-[#D92D20]" : "border-[#E5E7EB]"
+                      } rounded-[4px] text-sm text-[#101010] placeholder:text-[#101010]/40 focus:outline-none focus:border-[#0038FF] transition-colors`}
+                    />
+                    {errors.password && (
+                      <p className="mt-1 text-xs text-[#D92D20] flex items-center gap-1 font-mono">
+                        <AlertCircleIcon className="w-3.5 h-3.5 shrink-0" />
+                        <span>{errors.password}</span>
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="confirmPassword"
+                      className="block font-mono text-xs uppercase tracking-wider text-[#101010] font-semibold mb-1.5"
+                    >
+                      Confirm Password
+                    </label>
+                    <input
+                      id="confirmPassword"
+                      type="password"
+                      autoComplete="new-password"
+                      value={confirmPassword}
+                      onChange={(e) => {
+                        setConfirmPassword(e.target.value);
+                        if (errors.confirmPassword)
+                          setErrors((prev) => ({ ...prev, confirmPassword: undefined }));
+                      }}
+                      placeholder="••••••••"
+                      className={`w-full px-4 py-2.5 bg-[#FFFFFF] border ${
+                        errors.confirmPassword ? "border-[#D92D20]" : "border-[#E5E7EB]"
+                      } rounded-[4px] text-sm text-[#101010] placeholder:text-[#101010]/40 focus:outline-none focus:border-[#0038FF] transition-colors`}
+                    />
+                    {errors.confirmPassword && (
+                      <p className="mt-1 text-xs text-[#D92D20] flex items-center gap-1 font-mono">
+                        <AlertCircleIcon className="w-3.5 h-3.5 shrink-0" />
+                        <span>{errors.confirmPassword}</span>
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="pt-3">
+                    <Button
+                      type="submit"
+                      variant="primary"
+                      size="md"
+                      className="w-full"
+                      disabled={isSubmitting}
+                      icon={<ArrowRightIcon className="w-4 h-4" />}
+                    >
+                      {isSubmitting ? "Creating Account..." : "Create Account"}
+                    </Button>
+                  </div>
+                </form>
+              )}
 
               <div className="mt-6 pt-5 border-t border-[#E5E7EB] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
                 <span className="text-[#101010]/70">Already have an account?</span>
@@ -279,16 +328,6 @@ export function RegisterForm() {
                   Sign In →
                 </Link>
               </div>
-
-              {/* Demo Shortcut */}
-              <div className="mt-3 pt-3 border-t border-[#F4F4F4] text-center">
-                <Link
-                  href="/dashboard"
-                  className="font-mono text-xs text-[#101010]/60 hover:text-[#0038FF] underline"
-                >
-                  Skip to Demo Workspace without registering →
-                </Link>
-              </div>
             </div>
           </div>
         </div>
@@ -296,7 +335,7 @@ export function RegisterForm() {
 
       {/* Footer Colophon */}
       <footer className="px-6 py-6 border-t border-[#E5E7EB] bg-[#F4F4F4] text-center text-xs text-[#101010]/50 font-mono">
-        NoBait Phishing Detection Platform · Frontend Demonstration Registration
+        NoBait Phishing Detection Platform · Secured by Supabase Auth
       </footer>
     </div>
   );

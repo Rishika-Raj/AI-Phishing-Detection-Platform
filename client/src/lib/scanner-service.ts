@@ -1,33 +1,70 @@
 import { ScanResult, ThreatLevel, IndicatorResult } from "./mock-data";
+import { createClient } from "./supabase/client";
 
 /**
- * Deterministic rule-based evaluation for frontend demonstration.
- * This service implements the supported detection logic documented for NoBait:
- * - HTTPS usage
- * - Suspicious keywords
- * - Domain structure
- * - Blacklist status
- * - URL reputation indicators
- * - Email urgent language
- * - Credential harvesting requests
- *
- * It is intentionally abstracted so that it can be swapped for a real backend API call
- * in a subsequent phase without requiring any changes to the UI layer.
+ * Deterministic rule-based evaluation and backend API integration.
+ * If user is authenticated and backend server is available, dispatches to
+ * the Express server and persists to Supabase `scans` table.
+ * If offline or unauthenticated demo, computes results locally.
  */
 export interface AnalyzeScanOptions {
   subject?: string;
   sender?: string;
 }
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+
 export async function analyzeScan(
   input: string,
   targetType: "url" | "email" | "message",
   options?: AnalyzeScanOptions
 ): Promise<ScanResult> {
-  // Simulated processing latency for responsive feedback
-  await new Promise((resolve) => setTimeout(resolve, 600));
-
   const trimmed = input.trim();
+
+  // 1. Attempt authenticated backend API scan
+  try {
+    const supabase = createClient();
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (session?.access_token) {
+      let endpoint = `${API_BASE_URL}/api/scan/url`;
+      let payload: Record<string, unknown> = { url: trimmed };
+
+      if (targetType === "email") {
+        endpoint = `${API_BASE_URL}/api/scan/email`;
+        payload = {
+          content: trimmed,
+          subject: options?.subject?.trim() || undefined,
+          sender: options?.sender?.trim() || undefined,
+        };
+      } else if (targetType === "message") {
+        endpoint = `${API_BASE_URL}/api/scan/message`;
+        payload = { content: trimmed };
+      }
+
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.scan) {
+          return json.scan as ScanResult;
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("Backend scan service unreachable, falling back to local heuristic analysis:", err);
+  }
+
+  // 2. Local Fallback Heuristic Analysis
+  await new Promise((resolve) => setTimeout(resolve, 500));
+
   const subjectTrimmed = options?.subject?.trim() || "";
   const combinedContent = subjectTrimmed ? `${subjectTrimmed} ${trimmed}` : trimmed;
   const lower = combinedContent.toLowerCase();
@@ -259,10 +296,8 @@ export async function analyzeScan(
     }
   }
 
-  // Bound score between 4 and 96 for demo realism
   riskScore = Math.max(4, Math.min(96, riskScore));
 
-  // Determine threat classification
   let threatLevel: ThreatLevel = "SAFE";
   let recommendation = "Target displays low risk indicators. Follow standard digital hygiene.";
 
@@ -278,7 +313,6 @@ export async function analyzeScan(
 
   const detectedKeywords = Array.from(detectedKeywordsSet);
 
-  // Construct readable target label
   let displayTarget = trimmed;
   if (targetType === "email") {
     displayTarget = subjectTrimmed || (trimmed.length > 80 ? `${trimmed.substring(0, 77)}...` : trimmed);
