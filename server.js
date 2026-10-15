@@ -15,9 +15,15 @@ app.get("/", (req, res) => {
 
 const authRoutes = require("./routes/authRoutes");
 const phishingRoutes = require("./routes/phishingRoutes");
+const emailRoutes = require("./routes/emailRoutes");
+const reportRoutes = require("./routes/reportRoutes");
+const analyticsRoutes = require("./routes/analyticsRoutes");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/phishing", phishingRoutes);
+app.use("/api/email", emailRoutes);
+app.use("/api/reports", reportRoutes);
+app.use("/api/admin/analytics", analyticsRoutes);
 
 const PORT = process.env.PORT || 5000;
 

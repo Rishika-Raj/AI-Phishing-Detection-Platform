@@ -1,20 +1,16 @@
+
+
 const express = require("express");
 const router = express.Router();
 
-router.post("/check", (req, res) => {
-    const { url } = req.body;
+const {
+    registerUser,
+    loginUser,
+    registerAdmin
+} = require("../controllers/authController");
 
-    if (!url) {
-        return res.status(400).json({
-            message: "URL is required"
-        });
-    }
-
-    res.json({
-        url: url,
-        result: "Analysis completed",
-        message: "Phishing detection API is working"
-    });
-});
+router.post("/register", registerUser);
+router.post("/login", loginUser);
+router.post("/register-admin", registerAdmin);
 
 module.exports = router;

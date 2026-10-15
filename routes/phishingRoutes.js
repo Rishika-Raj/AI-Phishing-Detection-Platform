@@ -17,4 +17,9 @@ router.post("/check", (req, res) => {
     });
 });
 
+const { scanURL } = require("../controllers/urlScanController");
+
+// POST /api/phishing/scan
+router.post("/scan", scanURL);
+
 module.exports = router;
